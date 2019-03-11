@@ -1,8 +1,9 @@
 // Pneumatic ankle IMU_based control 15th March demo
 // Abhishek Kashyap
 
-int imu_number = 1;
+const int imu_number = 1;
 const int difference_val_length = 10;
+const int relay_pin = 11;
 
 #define MAX_PACKET_LEN          (147)   // 8 IMUs: 147 bytes = 1 + 6*8   +   1 + 6*8   +   1 + 6*8
 float Euler[8][3];
@@ -43,6 +44,11 @@ void setup()
   {
     difference_values[i] = 0.0;
   }
+
+  // for relay
+  pinMode(relay_pin, OUTPUT);
+  digitalWrite(relay_pin, HIGH);
+
 }
 
 
@@ -151,6 +157,16 @@ void DispData(Packet_t *pkt)
 }
 
 
+void contract_muscle()
+{
+  digitalWrite(relay_pin, LOW); // energize 
+}
+
+void expand_muscle()
+{
+  digitalWrite(relay_pin, HIGH); // de-energize
+}
+
 
 void loop()
 {
@@ -162,7 +178,6 @@ void loop()
 
     if (read_sensor_data == true)    // (IMU data post-processing is complete)
     {
-      //Serial.println(Euler[imu_number][1]);
 
       // recording last 'difference_val_length' differences
       for (int i = 0; i < difference_val_length-1; i++)
@@ -183,13 +198,15 @@ void loop()
 
 //      Serial.println(difference);
 
-      if (difference < -70)  // pneumatic muscle should contract 
+      if (difference < -70)  // pneumatic muscle should contract, START pump
       {
-        Serial.println("10"); 
+        Serial.println("contract muscle");
+        contract_muscle(); 
       }
-      else
+      else // turn off pump
       {
-        Serial.println("0");
+        Serial.println("expand muscle");
+        expand_muscle();
       }
       
       previous_val = Euler[imu_number][1];
