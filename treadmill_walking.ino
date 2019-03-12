@@ -1,9 +1,9 @@
 // Pneumatic ankle IMU_based control 15th March demo
 // Abhishek Kashyap
 
-const int imu_number = 1;
-const int difference_val_length = 10;
-const int relay_pin = 11;
+const int imu_number = 7;
+const int difference_val_length = 3;
+const int relay_pin = 13;
 
 #define MAX_PACKET_LEN          (147)   // 8 IMUs: 147 bytes = 1 + 6*8   +   1 + 6*8   +   1 + 6*8
 float Euler[8][3];
@@ -15,7 +15,7 @@ const int HR_RX = A8;
 
 
 static uint8_t status = 0; /* to track each byte when iterating over the Serial buffer  */
-bool read_sensor_data = false;  /* send actuation signal only after IMU data packet processing is complete*/
+bool imu_data_obtained = false;  /* send actuation signal only after IMU data packet processing is complete*/
 
 typedef struct
 {
@@ -153,13 +153,13 @@ void DispData(Packet_t *pkt)
     Euler[imu_number][1] = 360 - abs(Euler[imu_number][1]);
   
 
-  read_sensor_data = true;   // ready to send actuation data signals to pneumatic ankle
+  imu_data_obtained = true;   // ready to send actuation data signals to pneumatic ankle
 }
 
 
 void contract_muscle()
 {
-  digitalWrite(relay_pin, LOW); // energize 
+  digitalWrite(relay_pin, LOW); // energize
 }
 
 void expand_muscle()
@@ -176,7 +176,7 @@ void loop()
     uint8_t byte_acquired = Serial2.read();  // reading one byte at a time from the Serial buffer
     unpack_packet(byte_acquired);
 
-    if (read_sensor_data == true)    // (IMU data post-processing is complete)
+    if (imu_data_obtained == true)    // (IMU data post-processing is complete)
     {
 
       // recording last 'difference_val_length' differences
@@ -198,10 +198,11 @@ void loop()
 
 //      Serial.println(difference);
 
-      if (difference < -70)  // pneumatic muscle should contract, START pump
+      if (difference < -40)  // pneumatic muscle should contract, START pump
       {
         Serial.println("contract muscle");
         contract_muscle(); 
+        //delay(2000);
       }
       else // turn off pump
       {
@@ -210,7 +211,7 @@ void loop()
       }
       
       previous_val = Euler[imu_number][1];
-      read_sensor_data = false;
+      imu_data_obtained = false;
     }
   }
   
